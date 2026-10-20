@@ -1,129 +1,49 @@
----
-comments: true
-difficulty: Hard
-rating: 1999
-source: Weekly Contest 495 Q3
-tags:
-    - Array
-    - Math
-    - Enumeration
-    - Sorting
----
+class Solution {
+public:
+    int sortableIntegers(vector<int>& nums) {
+        int n = nums.size();
+        vector<int> sorted = nums;
+        sort(sorted.begin(), sorted.end());
 
-<!-- problem:start -->
+        int ans = 0;
 
-# [3886. Sum of Sortable Integers](https://leetcode.com/problems/sum-of-sortable-integers)
+        for (int k = 1; k <= n; k++) {
+            if (n % k != 0) continue;
 
+            bool valid = true;
 
-## Description
+            for (int start = 0; start < n && valid; start += k) {
+                int descents = 0;
 
-<!-- description:start -->
+                for (int j = 0; j < k; j++) {
+                    int cur = nums[start + j];
+                    int nxt = nums[start + (j + 1) % k];
 
-<p>You are given an integer array <code>nums</code> of length <code>n</code>.</p>
+                    if (cur > nxt) descents++;
+                }
 
-<p>An integer <code>k</code> is called <strong>sortable</strong> if <code>k</code> <strong>divides</strong> <code>n</code> and you can sort <code>nums</code> in <strong>non-decreasing</strong> order by sequentially performing the following operations:</p>
+                if (descents > 1) {
+                    valid = false;
+                    break;
+                }
 
-<ul>
-	<li>Partition <code>nums</code> into <strong>consecutive <span data-keyword="subarray-nonempty">subarrays</span></strong> of length <code>k</code>.</li>
-	<li><strong>Cyclically rotate each subarray independently</strong> any number of times to the left or to the right.</li>
-</ul>
+                vector<int> block(nums.begin() + start,
+                                  nums.begin() + start + k);
 
-<p>Return an integer denoting the sum of all possible sortable integers <code>k</code>.</p>
+                vector<int> target(sorted.begin() + start,
+                                   sorted.begin() + start + k);
 
-<p>&nbsp;</p>
-<p><strong class="example">Example 1:</strong></p>
+                sort(block.begin(), block.end());
+                sort(target.begin(), target.end());
 
-<div class="example-block">
-<p><strong>Input:</strong> <span class="example-io">nums = [3,1,2]</span></p>
+                if (block != target) {
+                    valid = false;
+                }
+            }
 
-<p><strong>Output:</strong> <span class="example-io">3</span></p>
+            if (valid) ans += k;
+        }
 
-<p><strong>Explanation:</strong>​​​​​​​</p>
-
-<ul>
-	<li>For <code>n = 3</code>, possible divisors are 1 and 3.</li>
-	<li>For <code>k = 1</code>: each subarray has one element. No rotation can sort the array.</li>
-	<li>For <code>k = 3</code>: the single subarray <code>[3, 1, 2]</code> can be rotated once to produce <code>[1, 2, 3]</code>, which is sorted.</li>
-	<li>Only <code>k = 3</code> is sortable. Hence, the answer is 3.</li>
-</ul>
-</div>
-
-<p><strong class="example">Example 2:</strong></p>
-
-<div class="example-block">
-<p><strong>Input:</strong> <span class="example-io">nums = [7,6,5]</span></p>
-
-<p><strong>Output:</strong> <span class="example-io">0</span></p>
-
-<p><strong>Explanation:</strong></p>
-
-<ul>
-	<li>For <code>n = 3</code>, possible divisors are 1 and 3.</li>
-	<li>For <code>k = 1</code>: each subarray has one element. No rotation can sort the array.</li>
-	<li>For <code>k = 3</code>: the single subarray <code>[7, 6, 5]</code> cannot be rotated into non-decreasing order.</li>
-	<li>No <code>k</code> is sortable. Hence, the answer is 0.</li>
-</ul>
-</div>
-
-<p><strong class="example">Example 3:</strong></p>
-
-<div class="example-block">
-<p><strong>Input:</strong> <span class="example-io">nums = [5,8]</span></p>
-
-<p><strong>Output:</strong> <span class="example-io">3</span></p>
-
-<p><strong>Explanation:</strong>​​​​​​​</p>
-
-<ul>
-	<li>For <code>n = 2</code>, possible divisors are 1 and 2.</li>
-	<li>Since <code>[5, 8]</code> is already sorted, every divisor is sortable. Hence, the answer is <code>1 + 2 = 3</code>.</li>
-</ul>
-</div>
-
-<p>&nbsp;</p>
-<p><strong>Constraints:</strong></p>
-
-<ul>
-	<li><code>1 &lt;= n == nums.length &lt;= 10<sup>5</sup></code></li>
-	<li><code>1 &lt;= nums[i] &lt;= 10<sup>5</sup></code></li>
-</ul>
-
-<!-- description:end -->
-
-## Solutions
-
-<!-- solution:start -->
-
-### Solution 1
-
-<!-- tabs:start -->
-
-#### Python3
-
-```python
-
-```
-
-#### Java
-
-```java
-
-```
-
-#### C++
-
-```cpp
-
-```
-
-#### Go
-
-```go
-
-```
-
-<!-- tabs:end -->
-
-<!-- solution:end -->
-
-<!-- problem:end -->
+        return ans;
+    }
+};

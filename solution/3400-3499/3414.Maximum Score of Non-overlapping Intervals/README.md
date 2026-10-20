@@ -1,102 +1,95 @@
----
-comments: true
-difficulty: Hard
-rating: 2723
-source: Weekly Contest 431 Q4
-tags:
-    - Array
-    - Binary Search
-    - Dynamic Programming
-    - Sorting
----
+class Solution {
+public:
+    using ll = long long;
 
-<!-- problem:start -->
+    struct Node {
+        ll score;
+        vector<int> indices;
+    };
 
-# [3414. Maximum Score of Non-overlapping Intervals](https://leetcode.com/problems/maximum-score-of-non-overlapping-intervals)
+    vector<vector<int>> intervals;
+    vector<int> starts;
+    vector<vector<Node>> dp;
 
+    bool better(const Node& a, const Node& b) {
+        if (a.score != b.score)
+            return a.score > b.score;
 
-## Description
+        return a.indices < b.indices;
+    }
 
-<!-- description:start -->
+    int findNext(int r) {
+        int l = 0;
+        int h = starts.size();
 
-<p>You are given a 2D integer array <code>intervals</code>, where <code>intervals[i] = [l<sub>i</sub>, r<sub>i</sub>, weight<sub>i</sub>]</code>. Interval <code>i</code> starts at position <code>l<sub>i</sub></code> and ends at <code>r<sub>i</sub></code>, and has a weight of <code>weight<sub>i</sub></code>. You can choose <em>up to</em> 4 <strong>non-overlapping</strong> intervals. The <strong>score</strong> of the chosen intervals is defined as the total sum of their weights.</p>
+        while (l < h) {
+            int mid = l + (h - l) / 2;
 
-<p>Return the <span data-keyword="lexicographically-smaller-array">lexicographically smallest</span> array of at most 4 indices from <code>intervals</code> with <strong>maximum</strong> score, representing your choice of non-overlapping intervals.</p>
+            if (starts[mid] > r)
+                h = mid;
+            else
+                l = mid + 1;
+        }
 
-<p>Two intervals are said to be <strong>non-overlapping</strong> if they do not share any points. In particular, intervals sharing a left or right boundary are considered overlapping.</p>
+        return l;
+    }
 
-<p>&nbsp;</p>
-<p><strong class="example">Example 1:</strong></p>
+    Node solve(int i, int k) {
 
-<div class="example-block">
-<p><strong>Input:</strong> <span class="example-io">intervals = [[1,3,2],[4,5,2],[1,5,5],[6,9,3],[6,7,1],[8,9,1]]</span></p>
+        if (i >= intervals.size() || k == 0)
+            return {0, {}};
 
-<p><strong>Output:</strong> <span class="example-io">[2,3]</span></p>
+        if (dp[i][k].score != -1)
+            return dp[i][k];
 
-<p><strong>Explanation:</strong></p>
+        // Don't take current interval
+        Node skip = solve(i + 1, k);
 
-<p>You can choose the intervals with indices 2, and 3 with respective weights of 5, and 3.</p>
-</div>
+        // Take current interval
+        int next = findNext(intervals[i][1]);
 
-<p><strong class="example">Example 2:</strong></p>
+        Node take = solve(next, k - 1);
 
-<div class="example-block">
-<p><strong>Input:</strong> <span class="example-io">intervals = [[5,8,1],[6,7,7],[4,7,3],[9,10,6],[7,8,2],[11,14,3],[3,5,5]]</span></p>
+        take.score += intervals[i][2];
+        take.indices.push_back(intervals[i][3]);
 
-<p><strong>Output:</strong> <span class="example-io">[1,3,5,6]</span></p>
+        sort(take.indices.begin(), take.indices.end());
 
-<p><strong>Explanation:</strong></p>
+        if (better(take, skip))
+            dp[i][k] = take;
+        else
+            dp[i][k] = skip;
 
-<p>You can choose the intervals with indices 1, 3, 5, and 6 with respective weights of 7, 6, 3, and 5.</p>
-</div>
+        return dp[i][k];
+    }
 
-<p>&nbsp;</p>
-<p><strong>Constraints:</strong></p>
+    vector<int> maximumWeight(vector<vector<int>>& arr) {
 
-<ul>
-	<li><code>1 &lt;= intevals.length &lt;= 5 * 10<sup>4</sup></code></li>
-	<li><code>intervals[i].length == 3</code></li>
-	<li><code>intervals[i] = [l<sub>i</sub>, r<sub>i</sub>, weight<sub>i</sub>]</code></li>
-	<li><code>1 &lt;= l<sub>i</sub> &lt;= r<sub>i</sub> &lt;= 10<sup>9</sup></code></li>
-	<li><code>1 &lt;= weight<sub>i</sub> &lt;= 10<sup>9</sup></code></li>
-</ul>
+        int n = arr.size();
 
-<!-- description:end -->
+        intervals.clear();
 
-## Solutions
+        for (int i = 0; i < n; i++) {
+            intervals.push_back({
+                arr[i][0],
+                arr[i][1],
+                arr[i][2],
+                i
+            });
+        }
 
-<!-- solution:start -->
+        sort(intervals.begin(), intervals.end());
 
-### Solution 1
+        starts.resize(n);
 
-<!-- tabs:start -->
+        for (int i = 0; i < n; i++) {
+            starts[i] = intervals[i][0];
+        }
 
-#### Python3
+        dp.assign(n, vector<Node>(5, {-1, {}}));
 
-```python
+        Node ans = solve(0, 4);
 
-```
-
-#### Java
-
-```java
-
-```
-
-#### C++
-
-```cpp
-
-```
-
-#### Go
-
-```go
-
-```
-
-<!-- tabs:end -->
-
-<!-- solution:end -->
-
-<!-- problem:end -->
+        return ans.indices;
+    }
+};
