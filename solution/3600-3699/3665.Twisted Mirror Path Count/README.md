@@ -1,194 +1,85 @@
----
-comments: true
-difficulty: Medium
-rating: 1883
-source: Biweekly Contest 164 Q3
-tags:
-    - Array
-    - Dynamic Programming
-    - Matrix
----
+ class Solution {
+public:
+    static constexpr int MOD = 1'000'000'007;
+    static constexpr int INVALID = -1;
 
-<!-- problem:start -->
+    int m, n;
+    vector<vector<int>> &grid;
 
-# [3665. Twisted Mirror Path Count](https://leetcode.com/problems/twisted-mirror-path-count)
+    // memo[i][j][dir]:
+    // Resolved destination when entering (i, j) in direction dir.
+    // dir = 0: moving right
+    // dir = 1: moving down
+    vector<vector<array<int, 2>>> memo;
 
+    Solution() : grid(*new vector<vector<int>>()) {}
 
-## Description
+    int resolve(int i, int j, int dir) {
+        // Out of bounds => invalid path
+        if (i >= m || j >= n)
+            return INVALID;
 
-<!-- description:start -->
+        // Reached an empty cell
+        if (grid[i][j] == 0)
+            return i * n + j;
 
-<p>Given an <code>m x n</code> binary grid <code>grid</code> where:</p>
+        // Already resolved this mirror state
+        if (memo[i][j][dir] != -2)
+            return memo[i][j][dir];
 
-<ul>
-	<li><code>grid[i][j] == 0</code> represents an empty cell, and</li>
-	<li><code>grid[i][j] == 1</code> represents a mirror.</li>
-</ul>
+        int ni, nj, ndir;
 
-<p>A robot starts at the top-left corner of the grid <code>(0, 0)</code> and wants to reach the bottom-right corner <code>(m - 1, n - 1)</code>. It can move only <strong>right</strong> or <strong>down</strong>. If the robot attempts to move into a mirror cell, it is <strong>reflected</strong> before entering that cell:</p>
+        if (dir == 0) {
+            // Entered mirror moving right => reflect down
+            ni = i + 1;
+            nj = j;
+            ndir = 1;
+        } else {
+            // Entered mirror moving down => reflect right
+            ni = i;
+            nj = j + 1;
+            ndir = 0;
+        }
 
-<ul>
-	<li>If it tries to move <strong>right</strong> into a mirror, it is turned <strong>down</strong> and moved into the cell directly below the mirror.</li>
-	<li>If it tries to move <strong>down</strong> into a mirror, it is turned <strong>right</strong> and moved into the cell directly to the right of the mirror.</li>
-</ul>
+        return memo[i][j][dir] = resolve(ni, nj, ndir);
+    }
 
-<p>If this reflection would cause the robot to move outside the <code>grid</code> boundaries, the path is considered invalid and should not be counted.</p>
+    int uniquePaths(vector<vector<int>>& input) {
+        grid = input;
+        m = grid.size();
+        n = grid[0].size();
 
-<p>Return the number of unique valid paths from <code>(0, 0)</code> to <code>(m - 1, n - 1)</code>.</p>
+        memo.assign(m, vector<array<int, 2>>(n));
+        for (auto &row : memo)
+            for (auto &cell : row)
+                cell = {-2, -2};
 
-<p>Since the answer may be very large, return it <strong>modulo</strong> <code>10<sup>9</sup> + 7</code>.</p>
+        vector<vector<int>> dp(m, vector<int>(n, 0));
+        dp[0][0] = 1;
 
-<p><strong>Note</strong>: If a reflection moves the robot into a mirror cell, the robot is immediately reflected again based on the direction it used to enter that mirror: if it entered while moving right, it will be turned down; if it entered while moving down, it will be turned right. This process will continue until either the last cell is reached, the robot moves out of bounds or the robot moves to a non-mirror cell.</p>
+        for (int i = 0; i < m; i++) {
+            for (int j = 0; j < n; j++) {
+                if (grid[i][j] == 1 || dp[i][j] == 0)
+                    continue;
 
-<p>&nbsp;</p>
-<p><strong class="example">Example 1:</strong></p>
+                // Try moving right
+                int dest = resolve(i, j + 1, 0);
+                if (dest != INVALID) {
+                    int r = dest / n;
+                    int c = dest % n;
+                    dp[r][c] = (dp[r][c] + dp[i][j]) % MOD;
+                }
 
-<div class="example-block">
-<p><strong>Input:</strong> <span class="example-io">grid = [[0,1,0],[0,0,1],[1,0,0]]</span></p>
+                // Try moving down
+                dest = resolve(i + 1, j, 1);
+                if (dest != INVALID) {
+                    int r = dest / n;
+                    int c = dest % n;
+                    dp[r][c] = (dp[r][c] + dp[i][j]) % MOD;
+                }
+            }
+        }
 
-<p><strong>Output:</strong> <span class="example-io">5</span></p>
-
-<p><strong>Explanation:</strong></p>
-
-<table style="border: 1px solid black;">
-	<thead>
-		<tr>
-			<th align="center" style="border: 1px solid black;">Number</th>
-			<th align="left" style="border: 1px solid black;">Full Path</th>
-		</tr>
-	</thead>
-	<tbody>
-		<tr>
-			<td align="center" style="border: 1px solid black;">1</td>
-			<td align="left" style="border: 1px solid black;">(0, 0) &rarr; (0, 1) [M] &rarr; (1, 1) &rarr; (1, 2) [M] &rarr; (2, 2)</td>
-		</tr>
-		<tr>
-			<td align="center" style="border: 1px solid black;">2</td>
-			<td align="left" style="border: 1px solid black;">(0, 0) &rarr; (0, 1) [M] &rarr; (1, 1) &rarr; (2, 1) &rarr; (2, 2)</td>
-		</tr>
-		<tr>
-			<td align="center" style="border: 1px solid black;">3</td>
-			<td align="left" style="border: 1px solid black;">(0, 0) &rarr; (1, 0) &rarr; (1, 1) &rarr; (1, 2) [M] &rarr; (2, 2)</td>
-		</tr>
-		<tr>
-			<td align="center" style="border: 1px solid black;">4</td>
-			<td align="left" style="border: 1px solid black;">(0, 0) &rarr; (1, 0) &rarr; (1, 1) &rarr; (2, 1) &rarr; (2, 2)</td>
-		</tr>
-		<tr>
-			<td align="center" style="border: 1px solid black;">5</td>
-			<td align="left" style="border: 1px solid black;">(0, 0) &rarr; (1, 0) &rarr; (2, 0) [M] &rarr; (2, 1) &rarr; (2, 2)</td>
-		</tr>
-	</tbody>
-</table>
-
-<ul data-end="606" data-start="521">
-	<li data-end="606" data-start="521">
-	<p data-end="606" data-start="523"><code>[M]</code> indicates the robot attempted to enter a mirror cell and instead reflected.</p>
-	</li>
-</ul>
-</div>
-
-<p><strong class="example">Example 2:</strong></p>
-
-<div class="example-block">
-<p><strong>Input:</strong> <span class="example-io">grid = [[0,0],[0,0]]</span></p>
-
-<p><strong>Output:</strong> <span class="example-io">2</span></p>
-
-<p><strong>Explanation:</strong></p>
-
-<table style="border: 1px solid black;">
-	<thead>
-		<tr>
-			<th align="center" style="border: 1px solid black;">Number</th>
-			<th align="left" style="border: 1px solid black;">Full Path</th>
-		</tr>
-	</thead>
-	<tbody>
-		<tr>
-			<td align="center" style="border: 1px solid black;">1</td>
-			<td align="left" style="border: 1px solid black;">(0, 0) &rarr; (0, 1) &rarr; (1, 1)</td>
-		</tr>
-		<tr>
-			<td align="center" style="border: 1px solid black;">2</td>
-			<td align="left" style="border: 1px solid black;">(0, 0) &rarr; (1, 0) &rarr; (1, 1)</td>
-		</tr>
-	</tbody>
-</table>
-</div>
-
-<p><strong class="example">Example 3:</strong></p>
-
-<div class="example-block">
-<p><strong>Input:</strong> <span class="example-io">grid = </span>[[0,1,1],[1,1,0]]</p>
-
-<p><strong>Output:</strong> 1</p>
-
-<p><strong>Explanation:</strong></p>
-
-<table style="border: 1px solid black;">
-	<thead>
-		<tr>
-			<th align="center" style="border: 1px solid black;">Number</th>
-			<th align="left" style="border: 1px solid black;">Full Path</th>
-		</tr>
-	</thead>
-	<tbody>
-		<tr>
-			<td align="center" style="border: 1px solid black;">1</td>
-			<td align="left" style="border: 1px solid black;">(0, 0) &rarr; (0, 1) [M] &rarr; (1, 1) [M] &rarr; (1, 2)</td>
-		</tr>
-	</tbody>
-</table>
-<code>(0, 0) &rarr; (1, 0) [M] &rarr; (1, 1) [M] &rarr; (2, 1)</code> goes out of bounds, so it is invalid.</div>
-
-<p>&nbsp;</p>
-<p><strong>Constraints:</strong></p>
-
-<ul>
-	<li data-end="41" data-start="21"><code data-end="39" data-start="21">m == grid.length</code></li>
-	<li data-end="67" data-start="44"><code data-end="65" data-start="44">n == grid[i].length</code></li>
-	<li data-end="91" data-start="70"><code data-end="89" data-start="70">2 &lt;= m, n &lt;= 500</code></li>
-	<li data-end="129" data-start="94"><code data-end="106" data-start="94">grid[i][j]</code> is either <code data-end="120" data-is-only-node="" data-start="117">0</code> or <code data-end="127" data-start="124">1</code>.</li>
-	<li data-end="169" data-start="132"><code data-end="167" data-start="132">grid[0][0] == grid[m - 1][n - 1] == 0</code></li>
-</ul>
-
-<!-- description:end -->
-
-## Solutions
-
-<!-- solution:start -->
-
-### Solution 1
-
-<!-- tabs:start -->
-
-#### Python3
-
-```python
-
-```
-
-#### Java
-
-```java
-
-```
-
-#### C++
-
-```cpp
-
-```
-
-#### Go
-
-```go
-
-```
-
-<!-- tabs:end -->
-
-<!-- solution:end -->
-
-<!-- problem:end -->
+        return dp[m - 1][n - 1];
+    }
+};

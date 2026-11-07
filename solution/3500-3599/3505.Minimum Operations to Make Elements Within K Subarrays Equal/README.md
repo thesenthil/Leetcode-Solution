@@ -1,113 +1,111 @@
----
-comments: true
-difficulty: Hard
-rating: 2538
-source: Weekly Contest 443 Q4
-tags:
-    - Array
-    - Hash Table
-    - Math
-    - Dynamic Programming
-    - Sliding Window
-    - Heap (Priority Queue)
----
+class Solution {
+public:
+    using ll = long long;
 
-<!-- problem:start -->
+    class MedianWindow {
+        multiset<int> left, right;
+        ll leftSum = 0, rightSum = 0;
 
-# [3505. Minimum Operations to Make Elements Within K Subarrays Equal](https://leetcode.com/problems/minimum-operations-to-make-elements-within-k-subarrays-equal)
+        void rebalance() {
+            int target = (left.size() + right.size() + 1) / 2;
 
+            while (left.size() > target) {
+                int val = *left.rbegin();
+                left.erase(prev(left.end()));
+                leftSum -= val;
 
-## Description
+                right.insert(val);
+                rightSum += val;
+            }
 
-<!-- description:start -->
+            while (left.size() < target) {
+                int val = *right.begin();
+                right.erase(right.begin());
+                rightSum -= val;
 
-<p>You are given an integer array <code>nums</code> and two integers, <code>x</code> and <code>k</code>. You can perform the following operation any number of times (<strong>including zero</strong>):</p>
+                left.insert(val);
+                leftSum += val;
+            }
+        }
 
-<ul>
-	<li>Increase or decrease any element of <code>nums</code> by 1.</li>
-</ul>
+    public:
+        void add(int val) {
+            if (left.empty() || val <= *left.rbegin()) {
+                left.insert(val);
+                leftSum += val;
+            } else {
+                right.insert(val);
+                rightSum += val;
+            }
 
-<p>Return the <strong>minimum</strong> number of operations needed to have <strong>at least</strong> <code>k</code> <em>non-overlapping <span data-keyword="subarray-nonempty">subarrays</span></em> of size <strong>exactly</strong> <code>x</code> in <code>nums</code>, where all elements within each subarray are equal.</p>
+            rebalance();
+        }
 
-<p>&nbsp;</p>
-<p><strong class="example">Example 1:</strong></p>
+        void remove(int val) {
+            auto it = left.find(val);
 
-<div class="example-block">
-<p><strong>Input:</strong> <span class="example-io">nums = [5,-2,1,3,7,3,6,4,-1], x = 3, k = 2</span></p>
+            if (it != left.end()) {
+                left.erase(it);
+                leftSum -= val;
+            } else {
+                it = right.find(val);
+                right.erase(it);
+                rightSum -= val;
+            }
 
-<p><strong>Output:</strong> <span class="example-io">8</span></p>
+            rebalance();
+        }
 
-<p><strong>Explanation:</strong></p>
+        ll getCost() {
+            ll median = *left.rbegin();
 
-<ul>
-	<li>Use 3 operations to add 3 to <code>nums[1]</code> and use 2 operations to subtract 2 from <code>nums[3]</code>. The resulting array is <code>[5, 1, 1, 1, 7, 3, 6, 4, -1]</code>.</li>
-	<li>Use 1 operation to add 1 to <code>nums[5]</code> and use 2 operations to subtract 2 from <code>nums[6]</code>. The resulting array is <code>[5, 1, 1, 1, 7, 4, 4, 4, -1]</code>.</li>
-	<li>Now, all elements within each subarray <code>[1, 1, 1]</code> (from indices 1 to 3) and <code>[4, 4, 4]</code> (from indices 5 to 7) are equal. Since 8 total operations were used, 8 is the output.</li>
-</ul>
-</div>
+            return median * (ll)left.size() - leftSum
+                 + rightSum - median * (ll)right.size();
+        }
+    };
 
-<p><strong class="example">Example 2:</strong></p>
+    long long minOperations(vector<int>& nums, int x, int k) {
+        int n = nums.size();
+        int m = n - x + 1;
 
-<div class="example-block">
-<p><strong>Input:</strong> <span class="example-io">nums = [9,-2,-2,-2,1,5], x = 2, k = 2</span></p>
+        vector<ll> cost(m);
+        MedianWindow window;
 
-<p><strong>Output:</strong> <span class="example-io">3</span></p>
+        for (int i = 0; i < x; i++) {
+            window.add(nums[i]);
+        }
 
-<p><strong>Explanation:</strong></p>
+        cost[0] = window.getCost();
 
-<ul>
-	<li>Use 3 operations to subtract 3 from <code>nums[4]</code>. The resulting array is <code>[9, -2, -2, -2, -2, 5]</code>.</li>
-	<li>Now, all elements within each subarray <code>[-2, -2]</code> (from indices 1 to 2) and <code>[-2, -2]</code> (from indices 3 to 4) are equal. Since 3 operations were used, 3 is the output.</li>
-</ul>
-</div>
+        for (int i = x; i < n; i++) {
+            window.remove(nums[i - x]);
+            window.add(nums[i]);
+            cost[i - x + 1] = window.getCost();
+        }
 
-<p>&nbsp;</p>
-<p><strong>Constraints:</strong></p>
+        const ll INF = LLONG_MAX / 4;
 
-<ul>
-	<li><code>2 &lt;= nums.length &lt;= 10<sup>5</sup></code></li>
-	<li><code>-10<sup>6</sup> &lt;= nums[i] &lt;= 10<sup>6</sup></code></li>
-	<li><code>2 &lt;= x &lt;= nums.length</code></li>
-	<li><code>1 &lt;= k &lt;= 15</code></li>
-	<li><code>2 &lt;= k * x &lt;= nums.length</code></li>
-</ul>
+        vector<ll> prev(n + 1, 0), curr(n + 1, INF);
 
-<!-- description:end -->
+        for (int j = 1; j <= k; j++) {
+            fill(curr.begin(), curr.end(), INF);
 
-## Solutions
+            for (int i = 1; i <= n; i++) {
+                // Skip the current element.
+                curr[i] = curr[i - 1];
 
-<!-- solution:start -->
+                // Select a subarray of length x ending at i - 1.
+                if (i >= x && prev[i - x] != INF) {
+                    curr[i] = min(
+                        curr[i],
+                        prev[i - x] + cost[i - x]
+                    );
+                }
+            }
 
-### Solution 1
+            prev.swap(curr);
+        }
 
-<!-- tabs:start -->
-
-#### Python3
-
-```python
-
-```
-
-#### Java
-
-```java
-
-```
-
-#### C++
-
-```cpp
-
-```
-
-#### Go
-
-```go
-
-```
-
-<!-- tabs:end -->
-
-<!-- solution:end -->
-
-<!-- problem:end -->
+        return prev[n];
+    }
+};
