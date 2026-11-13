@@ -1,107 +1,99 @@
----
-comments: true
-difficulty: Hard
-rating: 2854
-source: Weekly Contest 432 Q4
-tags:
-    - Stack
-    - Segment Tree
-    - Queue
-    - Array
-    - Sliding Window
-    - Monotonic Queue
-    - Monotonic Stack
----
 
-<!-- problem:start -->
+class Solution {
+public:
+    long long countNonDecreasingSubarrays(vector<int>& nums, int k) {
+        int n = nums.size();
+        const int LOG = 18;
 
-# [3420. Count Non-Decreasing Subarrays After K Operations](https://leetcode.com/problems/count-non-decreasing-subarrays-after-k-operations)
+        vector<int> nxt(n, n);
+        stack<int> st;
 
+        // Step 1: Next Greater Element
+        for (int i = n - 1; i >= 0; i--) {
+            while (!st.empty() && nums[st.top()] <= nums[i]) {
+                st.pop();
+            }
 
-## Description
+            if (!st.empty()) {
+                nxt[i] = st.top();
+            }
 
-<!-- description:start -->
+            st.push(i);
+        }
 
-<p>You are given an array <code>nums</code> of <code>n</code> integers and an integer <code>k</code>.</p>
+        // Step 2: Binary lifting tables
+        vector<vector<int>> up(LOG, vector<int>(n, n));
+        vector<vector<long long>> sum(
+            LOG, vector<long long>(n, 0)
+        );
 
-<p>For each subarray of <code>nums</code>, you can apply <strong>up to</strong> <code>k</code> operations on it. In each operation, you increment any element of the subarray by 1.</p>
+        for (int i = 0; i < n; i++) {
+            up[0][i] = nxt[i];
+            sum[0][i] = 1LL * (nxt[i] - i) * nums[i];
+        }
 
-<p><strong>Note</strong> that each subarray is considered independently, meaning changes made to one subarray do not persist to another.</p>
+        for (int j = 1; j < LOG; j++) {
+            for (int i = 0; i < n; i++) {
+                int mid = up[j - 1][i];
 
-<p>Return the number of subarrays that you can make <strong>non-decreasing</strong> ​​​​​after performing at most <code>k</code> operations.</p>
+                if (mid < n) {
+                    up[j][i] = up[j - 1][mid];
+                    sum[j][i] =
+                        sum[j - 1][i] + sum[j - 1][mid];
+                } else {
+                    up[j][i] = n;
+                    sum[j][i] = sum[j - 1][i];
+                }
+            }
+        }
 
-<p>An array is said to be <strong>non-decreasing</strong> if each element is greater than or equal to its previous element, if it exists.</p>
+        // Prefix sum of original array
+        vector<long long> pref(n + 1, 0);
 
-<p>&nbsp;</p>
-<p><strong class="example">Example 1:</strong></p>
+        for (int i = 0; i < n; i++) {
+            pref[i + 1] = pref[i] + nums[i];
+        }
 
-<div class="example-block">
-<p><strong>Input:</strong> <span class="example-io">nums = [6,3,1,2,4,4], k = 7</span></p>
+        // Step 3: Calculate cost of [l, r]
+        auto getCost = [&](int l, int r) -> long long {
+            int cur = l;
+            long long mxSum = 0;
 
-<p><strong>Output:</strong> <span class="example-io">17</span></p>
+            for (int j = LOG - 1; j >= 0; j--) {
+                if (up[j][cur] <= r) {
+                    mxSum += sum[j][cur];
+                    cur = up[j][cur];
+                }
+            }
 
-<p><strong>Explanation:</strong></p>
+            mxSum += 1LL * (r - cur + 1) * nums[cur];
 
-<p>Out of all 21 possible subarrays of <code>nums</code>, only the subarrays <code>[6, 3, 1]</code>, <code>[6, 3, 1, 2]</code>, <code>[6, 3, 1, 2, 4]</code> and <code>[6, 3, 1, 2, 4, 4]</code> cannot be made non-decreasing after applying up to k = 7 operations. Thus, the number of non-decreasing subarrays is <code>21 - 4 = 17</code>.</p>
-</div>
+            long long originalSum = pref[r + 1] - pref[l];
 
-<p><strong class="example">Example 2:</strong></p>
+            return mxSum - originalSum;
+        };
 
-<div class="example-block">
-<p><strong>Input:</strong> <span class="example-io">nums = [6,3,1,3,6], k = 4</span></p>
+        // Step 4: Binary search for each right endpoint
+        long long ans = 0;
 
-<p><strong>Output:</strong> <span class="example-io">12</span></p>
+        for (int r = 0; r < n; r++) {
+            int low = 0, high = r;
+            int best = r + 1;
 
-<p><strong>Explanation:</strong></p>
+            while (low <= high) {
+                int mid = low + (high - low) / 2;
 
-<p>The subarray <code>[3, 1, 3, 6]</code> along with all subarrays of <code>nums</code> with three or fewer elements, except <code>[6, 3, 1]</code>, can be made non-decreasing after <code>k</code> operations. There are 5 subarrays of a single element, 4 subarrays of two elements, and 2 subarrays of three elements except <code>[6, 3, 1]</code>, so there are <code>1 + 5 + 4 + 2 = 12</code> subarrays that can be made non-decreasing.</p>
-</div>
+                if (getCost(mid, r) <= k) {
+                    best = mid;
+                    high = mid - 1;
+                } else {
+                    low = mid + 1;
+                }
+            }
 
-<p>&nbsp;</p>
-<p><strong>Constraints:</strong></p>
+            ans += r - best + 1;
+        }
 
-<ul>
-	<li><code>1 &lt;= nums.length &lt;= 10<sup>5</sup></code></li>
-	<li><code>1 &lt;= nums[i] &lt;= 10<sup>9</sup></code></li>
-	<li><code>1 &lt;= k &lt;= 10<sup>9</sup></code></li>
-</ul>
-
-<!-- description:end -->
-
-## Solutions
-
-<!-- solution:start -->
-
-### Solution 1
-
-<!-- tabs:start -->
-
-#### Python3
-
-```python
-
-```
-
-#### Java
-
-```java
-
-```
-
-#### C++
-
-```cpp
-
-```
-
-#### Go
-
-```go
-
-```
-
-<!-- tabs:end -->
-
-<!-- solution:end -->
-
-<!-- problem:end -->
+        return ans;
+    }
+};
